@@ -1,0 +1,111 @@
+---
+title: "Polymers"
+author: "Valtýr"
+date: "2023-09-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Tables from chatGPT (fact check)
+
+| Category             | Common Polymers                                   | Buoyancy                                                                                           | Shape        | Size Description                           |
+|----------------------|---------------------------------------------------|----------------------------------------------------------------------------------------------------|--------------|--------------------------------------------|
+| Laundry              | Polyester, acrylic, nylon, polyamide, elastane.   | Varies with polymer but often buoyant due to small size and trapped air.                           | Fibers       | Microfibers (<5mm in length)               |
+| Tyre Wear and Tear   | Styrene-butadiene rubber, natural rubber, nylon, polyester. | Typically denser than water, but can be found both sinking and suspended.                          | Particles, fragments | Varied, often in the microscale but can range up to larger fragments. |
+| Road Paint           | Acrylic, polyurethane, epoxy, alkyd.              | Varies with polymer type, many paints contain heavy metals or other additives causing them to sink. | Flakes, particles  | Typically larger microplastics, can degrade into smaller particles.  |
+| Indoor/Outdoor Paint | Acrylic, vinyl, alkyd, polyurethane.              | Typically denser due to additives but can vary.                                                  | Flakes, particles  | Often larger microplastics but can degrade into smaller particles over time. |
+
+
+
+| Polymer      | Density (g/cm³) | Most Prominent Raman Peaks |
+|--------------|-----------------|----------------------------|
+| PET          | 1.38-1.39       |  ~1610 cm⁻¹, ~1085 cm⁻¹     |
+| PP           | 0.90-0.91       |  ~1455 cm⁻¹, ~1380 cm⁻¹     |
+| PE-HD        | 0.95-0.97       |  ~1470 cm⁻¹, ~1300 cm⁻¹     |
+| PE-LD        | 0.92-0.94       |  ~1460 cm⁻¹, ~1300 cm⁻¹     |
+| PS           | 1.04-1.05       |  ~1003 cm⁻¹, ~1600 cm⁻¹     |
+| PVC          | 1.30-1.58       |  ~1000 cm⁻¹, ~1600 cm⁻¹     |
+| PA           | 1.01-1.15       |  ~1660 cm⁻¹, ~1560 cm⁻¹     |
+| PUR          | 1.15-1.20       |  ~1690 cm⁻¹, ~1550 cm⁻¹     |
+| POM          | 1.38-1.42       |  ~1275 cm⁻¹, ~1095 cm⁻¹     |
+| PMMA         | 1.17-1.20       |  ~1000 cm⁻¹, ~1600 cm⁻¹     |
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r population}
+library(ggplot2)
+library(sf)
+
+# Read the GeoPackage file into an sf object
+your_data <- st_read("data/centroids.gpkg")
+your_data$X2023 <- as.numeric(your_data$X2023)
+ggplot(data = your_data) +
+  geom_sf(aes(size = X2023)) +  # Size points based on "2023"
+  scale_size_continuous(range = c(1, 20)) +  # Adjust the size range as needed
+  ggtitle("Map with Points Sized by X2023")
+
+
+your_data.df <- your_data %>% st_transform( 4326) # %>% fortify() 
+```
+
+
+
+```{r hafrokort}
+#iceland.sp <- rgdal::readOGR("data/iceland.shp", verbose = FALSE)
+iceland.sp <- sf::st_read("data/iceland.shp")
+
+iceland.df <- iceland.sp #%>% fortify()
+
+coords <- st_coordinates(your_data.df)
+# Add coordinates as new columns to your_data
+your_data.df$lon <- coords[, "X"]
+your_data.df$lat <- coords[, "Y"]
+your_data.df <- your_data %>% st_transform( 4326) # %>% fortify()
+
+xlim <- c(-28, -10)
+ylim <- c(62.5, 67.5)
+depth <- 
+marmap::getNOAA.bathy(lon1 = xlim[1], lon2 = xlim[2],
+                lat1 = ylim[1], lat2 = ylim[2],
+                resolution = 1) %>% 
+  fortify()  # turn the object into a data.frame
+
+m <- ggplot() +
+  theme_bw() +
+  geom_contour(data = depth, aes(x, y, z = z),
+               breaks=c(-25, -50, -100, -200, -400),
+               colour="black", size=0.1) +
+  geom_polygon(data = iceland.df, aes(long, lat, group = group), fill = "grey") +
+  coord_quickmap(xlim = xlim, ylim = ylim, expand = FALSE) +
+  labs(x = NULL, y = NULL)
+
+m + geom_point(data = your_data.df[,c("X2023", "lon","lat")], aes(lon, lat, size = X2023), colour = "red")
+
+```
+
+
+```{r kort}
+
+
+
+ggplot() +
+  geom_polygon(data = iceland.df, aes(long, lat, group = group), fill = "grey") +  # Land outline first
+  geom_sf(data = your_data %>% st_transform(4326), 
+          aes(size = X2023), 
+          color = "white",  # White outline
+          shape = 21,        # Use a shape that has a border and a fill
+          fill = "blue") +   # Fill color for the points
+  scale_size_continuous(range = c(1, 20)) +  # Adjust the size range as needed
+  ggtitle("Map with Points Sized by Population 2023")
+
+
+```
